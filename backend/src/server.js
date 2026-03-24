@@ -2,7 +2,13 @@ import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
 import http from 'http';
+import path from 'path';
+import fs from 'fs';
+import { fileURLToPath } from 'url';
 import { getDb, closeDb } from './config/database.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 import { generalLimiter } from './middleware/rateLimit.js';
 import { setupConsoleWebSocket } from './routes/console.js';
 import lxdService from './services/lxd.js';
@@ -40,6 +46,18 @@ app.use('/api/backups', backupRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/tmate', tmateRoutes);
 app.use('/api/apikeys', apikeyRoutes);
+
+// Serve Static Frontend (Production)
+const distPath = path.join(__dirname, '../../frontend/dist');
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+  app.get('*', (req, res) => {
+    if (!req.path.startsWith('/api')) {
+      res.sendFile(path.join(distPath, 'index.html'));
+    }
+  });
+  console.log('[Server] Serving Frontend from:', distPath);
+}
 
 // Global error handler
 app.use((err, req, res, next) => {

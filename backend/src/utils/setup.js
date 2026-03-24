@@ -24,18 +24,19 @@ async function setup() {
   
   try {
     const existing = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
-    if (existing) {
-      console.log(`Admin user ${email} already exists. Skipping...`);
-      process.exit(0);
-    }
-
     const hashedPassword = await bcrypt.hash(password, 12);
-    const apiKey = generateApiKey();
     
-    db.prepare(`
-      INSERT INTO users (email, password, name, role, max_containers, api_key, api_key_created_at)
-      VALUES (?, ?, ?, 'admin', 99, ?, datetime('now'))
-    `).run(email, hashedPassword, 'System Admin', apiKey);
+    if (existing) {
+      db.prepare('UPDATE users SET password = ?, is_active = 1 WHERE id = ?').run(hashedPassword, existing.id);
+      console.log(`[Setup] Updated password for existing admin ${email}`);
+    } else {
+      const apiKey = generateApiKey();
+      db.prepare(`
+        INSERT INTO users (email, password, name, role, max_containers, api_key, api_key_created_at)
+        VALUES (?, ?, ?, 'admin', 99, ?, datetime('now'))
+      `).run(email, hashedPassword, 'System Admin', apiKey);
+      console.log(`[Setup] Created new admin user: ${email}`);
+    }
 
     // Update .env with credentials
     if (fs.existsSync(envPath)) {
