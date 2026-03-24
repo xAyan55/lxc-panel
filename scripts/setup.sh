@@ -41,19 +41,44 @@ elif command -v service &> /dev/null; then
 fi
 
 # 4. Handle LXC/LXD
-echo -e "${COLOR_CYAN}[2/6] Setting up LXC/LXD via Snap...${COLOR_RESET}"
-if ! command -v lxd &> /dev/null; then
-    snap install lxd
+echo -e "${COLOR_CYAN}[2/6] Setting up LXC/LXD...${COLOR_RESET}"
+
+# Attempt to install LXD via Snap
+if ! command -v lxc &> /dev/null; then
+    echo -e "${COLOR_YELLOW}LXD not found. Attempting installation via Snap...${COLOR_RESET}"
+    
+    # Aggressively try to start snapd
+    if command -v service &> /dev/null; then
+        service snapd start || true
+        sleep 2
+    fi
+
+    if ! snap install lxd --channel=latest/stable; then
+        echo -e "${COLOR_RED}ERROR: Snap installation failed.${COLOR_RESET}"
+        echo -e "${COLOR_YELLOW}Common causes: Non-systemd environment or Snap not supported.${COLOR_RESET}"
+        echo -e "${COLOR_PURPLE}ACTION REQUIRED: Please install LXD manually (e.g., 'apt install lxd-client lxd' if on older Ubuntu, or fix Snap).${COLOR_RESET}"
+        echo -e "Once installed, run this script again."
+        exit 1
+    fi
 fi
 
-# Initialize LXD if needed
-if ! lxc profile show default &> /dev/null; then
-    echo -e "${COLOR_PURPLE}Initializing LXD... (using defaults)${COLOR_RESET}"
-    lxd init --auto
+# Ensure /snap/bin is in PATH for this session
+export PATH=$PATH:/snap/bin
+
+echo -e "${COLOR_PURPLE}Initializing LXD...${COLOR_RESET}"
+if command -v lxd &> /dev/null; then
+    # Try automatic initialization
+    lxd init --auto || echo -e "${COLOR_YELLOW}Warning: Auto-init failed. You may need to run 'sudo lxd init' manually later.${COLOR_RESET}"
+else
+    echo -e "${COLOR_RED}LXD binary not found in PATH. Skipping auto-init.${COLOR_RESET}"
 fi
 
-# Ensure user is in lxd group
-usermod -aG lxd $USER
+# Add user to lxd group if it exists
+if getent group lxd >/dev/null; then
+    usermod -aG lxd $USER || true
+else
+    echo -e "${COLOR_YELLOW}Warning: 'lxd' group not found. You might need to run as root.${COLOR_RESET}"
+fi
 newgrp lxd 2>/dev/null
 
 # 5. Node.js Environment
