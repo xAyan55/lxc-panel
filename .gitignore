@@ -1,0 +1,29 @@
+# Node
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Build
+dist/
+build/
+coverage/
+
+# Database / Data
+backend/data/
+*.sqlite
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Enviroment
+.env
+.env.local
+.env.production
+.env.development
+
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/
+*.log
