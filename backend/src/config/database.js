@@ -29,7 +29,7 @@ function runMigrations(db) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS users (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      email TEXT UNIQUE NOT NULL,
+      email TEXT UNIQUE COLLATE NOCASE NOT NULL,
       password TEXT NOT NULL,
       name TEXT NOT NULL DEFAULT '',
       role TEXT NOT NULL DEFAULT 'user' CHECK(role IN ('admin', 'user')),
