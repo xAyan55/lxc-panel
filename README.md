@@ -27,12 +27,30 @@ A high-performance, production-ready VPS management panel built with **LXC/LXD**
 
 ## 🚀 Quick Deployment (Ubuntu 22.04+)
 
-Run the following command on a fresh Ubuntu server with root access:
+### Step 1: Manual LXD Installation
+Before installing the panel, you must set up LXD on your server manually:
+
+```bash
+# Update and install LXC/LXD
+sudo apt update && sudo apt upgrade -y
+sudo apt install lxc lxc-utils -y
+sudo apt install snapd -y
+sudo systemctl enable --now snapd.socket
+sudo snap install lxd
+sudo usermod -aG lxd $USER
+newgrp lxd
+sudo lxd init
+sudo apt update
+sudo apt install bridge-utils uidmap -y
+```
+
+### Step 2: Install VM Panel
+Once LXD is ready, run the panel installer:
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-repo/vmpanel.git
-cd vmpanel
+git clone https://github.com/xAyan55/lxc-panel.git
+cd lxc-panel
 
 # Run the installer
 chmod +x scripts/setup.sh
@@ -40,8 +58,8 @@ sudo ./scripts/setup.sh
 ```
 
 The installer will:
-1. Install system dependencies (LXD, Snap, Node.js, SQLite).
-2. Automatically initialize LXD.
+1. Install system tools (Node.js, SQLite, etc.).
+2. Verify your LXD installation.
 3. Build the frontend production bundle.
 4. Prompt you for initial **Admin Email and Password**.
 

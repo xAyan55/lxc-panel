@@ -27,59 +27,42 @@ if ! command -v apt &> /dev/null; then
     exit 1
 fi
 
-# 3. Install Core Dependencies
-echo -e "${COLOR_CYAN}[1/6] Installing system dependencies...${COLOR_RESET}"
+# 3. Install Core Dependencies (Panel only)
+echo -e "${COLOR_CYAN}[1/5] Installing system dependencies (Node.js & Tools)...${COLOR_RESET}"
 apt update -qq
-apt install -y -qq snapd curl build-essential git sqlite3 bridge-utils uidmap
+apt install -y -qq curl build-essential git sqlite3 bridge-utils uidmap
 
-# Try to start snapd if available, but don't fail if systemctl is missing
-if command -v systemctl &> /dev/null; then
-    systemctl enable snapd 2>/dev/null || true
-    systemctl start snapd 2>/dev/null || true
-elif command -v service &> /dev/null; then
-    service snapd start 2>/dev/null || true
-fi
+# 4. Handle LXC/LXD (Prerequisite Check)
+echo -e "${COLOR_CYAN}[2/5] Checking for LXC/LXD Prerequisite...${COLOR_RESET}"
 
-# 4. Handle LXC/LXD
-echo -e "${COLOR_CYAN}[2/6] Setting up LXC/LXD...${COLOR_RESET}"
-
-# Attempt to install LXD via Snap
 if ! command -v lxc &> /dev/null; then
-    echo -e "${COLOR_YELLOW}LXD not found. Attempting installation via Snap...${COLOR_RESET}"
-    
-    # Aggressively try to start snapd
-    if command -v service &> /dev/null; then
-        service snapd start || true
-        sleep 2
-    fi
-
-    if ! snap install lxd --channel=latest/stable; then
-        echo -e "${COLOR_RED}ERROR: Snap installation failed.${COLOR_RESET}"
-        echo -e "${COLOR_YELLOW}Common causes: Non-systemd environment or Snap not supported.${COLOR_RESET}"
-        echo -e "${COLOR_PURPLE}ACTION REQUIRED: Please install LXD manually (e.g., 'apt install lxd-client lxd' if on older Ubuntu, or fix Snap).${COLOR_RESET}"
-        echo -e "Once installed, run this script again."
-        exit 1
-    fi
+    echo -e "${COLOR_RED}Err: LXD is not installed on this system.${COLOR_RESET}"
+    echo -e "${COLOR_YELLOW}Please install LXD manually using these steps before running this script:${COLOR_RESET}"
+    echo -e "${COLOR_PURPLE}"
+    echo "1. sudo apt update && sudo apt upgrade -y"
+    echo "2. sudo apt install lxc lxc-utils -y"
+    echo "3. sudo apt install snapd -y"
+    echo "4. sudo systemctl enable --now snapd.socket"
+    echo "5. sudo snap install lxd"
+    echo "6. sudo usermod -aG lxd \$USER"
+    echo "7. newgrp lxd"
+    echo "8. sudo lxd init"
+    echo "9. sudo apt install bridge-utils uidmap -y"
+    echo -e "${COLOR_RESET}"
+    echo -e "Refer to documentation for detailed setup. Exiting..."
+    exit 1
 fi
 
-# Ensure /snap/bin is in PATH for this session
-export PATH=$PATH:/snap/bin
+# Ensure /snap/bin is in PATH for this session (just in case)
+export PATH=\$PATH:/snap/bin
 
-echo -e "${COLOR_PURPLE}Initializing LXD...${COLOR_RESET}"
-if command -v lxd &> /dev/null; then
-    # Try automatic initialization
-    lxd init --auto || echo -e "${COLOR_YELLOW}Warning: Auto-init failed. You may need to run 'sudo lxd init' manually later.${COLOR_RESET}"
-else
-    echo -e "${COLOR_RED}LXD binary not found in PATH. Skipping auto-init.${COLOR_RESET}"
+# Check if LXD is initialized
+if ! lxc profile show default &> /dev/null; then
+    echo -e "${COLOR_YELLOW}Warning: LXD 'default' profile not found. Make sure you ran 'lxd init'.${COLOR_RESET}"
+    echo -e "You can continue, but the panel might fail to create containers."
+    read -p "Continue anyway? (y/n): " confirm
+    if [[ \$confirm != [yY] ]]; then exit 1; fi
 fi
-
-# Add user to lxd group if it exists
-if getent group lxd >/dev/null; then
-    usermod -aG lxd $USER || true
-else
-    echo -e "${COLOR_YELLOW}Warning: 'lxd' group not found. You might need to run as root.${COLOR_RESET}"
-fi
-newgrp lxd 2>/dev/null
 
 # 5. Node.js Environment
 echo -e "${COLOR_CYAN}[3/6] Setting up Node.js environment...${COLOR_RESET}"
