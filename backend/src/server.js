@@ -31,14 +31,14 @@ app.use(cors({
   credentials: true,
 }));
 app.use(express.json({ limit: '10mb' }));
+app.use(generalLimiter);
 
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', lxd_ready: lxdService.ready, timestamp: new Date().toISOString() });
 });
 
-// Routes (Rate limited)
-app.use('/api', generalLimiter);
+// Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/containers', containerRoutes);
@@ -46,21 +46,6 @@ app.use('/api/backups', backupRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/tmate', tmateRoutes);
 app.use('/api/apikeys', apikeyRoutes);
-
-// Serve Static Frontend (Production)
-const distPath = path.join(__dirname, '../../frontend/dist');
-if (fs.existsSync(distPath)) {
-  app.use(express.static(distPath));
-  app.get('*', (req, res) => {
-    // Only serve index.html for non-file requests (navigation)
-    if (!req.path.startsWith('/api') && !req.path.includes('.')) {
-      res.sendFile(path.join(distPath, 'index.html'));
-    }
-  });
-  console.log('[Server] Serving Frontend from:', distPath);
-} else {
-  console.warn('[Server] WARNING: frontend/dist not found. Dashboard will not be visible!');
-}
 
 // Global error handler
 app.use((err, req, res, next) => {
