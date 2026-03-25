@@ -1,7 +1,21 @@
 import axios from 'axios';
 
+// Automatically determine the backend API URL.
+// In dev, it might be localhost:3001. In production, it might be a tunnel URL.
+const getBaseURL = () => {
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl) return envUrl;
+  
+  // If running locally on port 5173, fallback to port 3001
+  if (window.location.port === '5173') {
+    return `${window.location.protocol}//${window.location.hostname}:3001/api`;
+  }
+  
+  return '/api';
+};
+
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: getBaseURL(),
   timeout: 30000,
 });
 

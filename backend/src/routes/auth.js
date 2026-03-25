@@ -21,13 +21,18 @@ router.post('/register', authLimiter, registerRules, validate, async (req, res) 
     }
 
     const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+    
+    // First user becomes admin
+    const userCount = db.prepare('SELECT count(*) as count FROM users').get().count;
+    const role = userCount === 0 ? 'admin' : 'user';
+    const maxContainers = userCount === 0 ? 99 : 3;
 
     const result = db.prepare(
-      'INSERT INTO users (email, password, name, role) VALUES (?, ?, ?, ?)'
-    ).run(email, hashedPassword, name, 'user');
+      'INSERT INTO users (email, password, name, role, max_containers) VALUES (?, ?, ?, ?, ?)'
+    ).run(email, hashedPassword, name, role, maxContainers);
 
     const token = jwt.sign(
-      { userId: result.lastInsertRowid, role: 'user' },
+      { userId: result.lastInsertRowid, role: role },
       process.env.JWT_SECRET,
       { expiresIn: '24h' }
     );
@@ -40,7 +45,7 @@ router.post('/register', authLimiter, registerRules, validate, async (req, res) 
         id: result.lastInsertRowid,
         email,
         name,
-        role: 'user',
+        role: role,
         company_name: '',
         theme_color: '#7c3aed',
       }
