@@ -109,19 +109,34 @@ fi
 
 node src/utils/setup.js "$ADMIN_EMAIL" "$ADMIN_PASS"
 
-# 9. Completion
-echo -e "${COLOR_CYAN}[6/6] Installation Complete!${COLOR_RESET}"
+# 9. Start Application (PM2)
+echo -e "${COLOR_CYAN}[6/6] Launching VM Panel...${COLOR_RESET}"
+
+# Install PM2 if missing
+if ! command -v pm2 &> /dev/null; then
+    echo -e "${COLOR_YELLOW}PM2 not found. Installing globally...${COLOR_RESET}"
+    npm install -g pm2 -qq
+fi
+
+# Stop any existing instance
+pm2 delete vmpanel &>/dev/null || true
+
+# Start from root
+cd "$BASE_DIR"
+pm2 start backend/src/server.js --name vmpanel
+
+# 10. Completion
 echo -e "${COLOR_GREEN}"
 echo "--------------------------------------------------"
-echo "   ✅ VM PANEL INSTALLED SUCCESSFULLY            "
+echo "   ✅ VM PANEL INSTALLED & STARTED SUCCESSFULLY  "
 echo "--------------------------------------------------"
 echo -e "${COLOR_RESET}"
-echo "To start the panel in production mode:"
-echo "1. Run backend (Port 3001): cd backend && npm start"
-echo "2. Serve frontend (Build folder): Built in frontend/dist"
+echo "Your panel is now live on Port 3001!"
+echo "Management commands:"
+echo " - View logs: pm2 logs vmpanel"
+echo " - Restart:  pm2 restart vmpanel"
+echo " - Stop:     pm2 stop vmpanel"
 echo ""
-echo "Recommended: Use PM2 to manage processes."
-echo "npm install -g pm2"
-echo "pm2 start backend/src/server.js --name vmpanel-api"
-echo ""
-echo -e "${COLOR_CYAN}Default Admin Login: ${COLOR_WHITE}$ADMIN_EMAIL${COLOR_RESET}"
+echo -e "${COLOR_CYAN}Default Admin Info: ${COLOR_WHITE}$ADMIN_EMAIL${COLOR_RESET}"
+echo -e "${COLOR_CYAN}Access URL: ${COLOR_WHITE}http://your-ip:3001${COLOR_RESET}"
+echo "--------------------------------------------------"
