@@ -25,17 +25,19 @@ import apikeyRoutes from './routes/apikeys.js';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
+const JWT_SECRET = process.env.JWT_SECRET || 'vmpanel-default-secret-key';
+
 // Middleware
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
-app.use(generalLimiter);
 
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok', lxd_ready: lxdService.ready, timestamp: new Date().toISOString() });
 });
 
-// Routes
+// Routes (Rate limited)
+app.use('/api', generalLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/containers', containerRoutes);
@@ -43,6 +45,19 @@ app.use('/api/backups', backupRoutes);
 app.use('/api/stats', statsRoutes);
 app.use('/api/tmate', tmateRoutes);
 app.use('/api/apikeys', apikeyRoutes);
+
+// Optional: Serve Static Frontend (Hybrid Mode)
+const distPath = path.join(__dirname, '../../frontend/dist');
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+  app.get('*', (req, res) => {
+    // SPA fallback: only serve index.html if no extension found (it's a route)
+    if (!req.path.startsWith('/api') && !req.path.includes('.')) {
+      res.sendFile(path.join(distPath, 'index.html'));
+    }
+  });
+  console.log('[Server] Note: Serving static frontend from frontend/dist');
+}
 
 // Global error handler
 app.use((err, req, res, next) => {
