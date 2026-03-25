@@ -11,6 +11,18 @@ export default function Login() {
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const [showApiSettings, setShowApiSettings] = useState(false);
+  const [apiUrl, setApiUrl] = useState(localStorage.getItem('api_url') || '');
+
+  const saveApiUrl = () => {
+    if (apiUrl) {
+      localStorage.setItem('api_url', apiUrl);
+    } else {
+      localStorage.removeItem('api_url');
+    }
+    window.location.reload();
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
@@ -129,6 +141,41 @@ export default function Login() {
         <p style={{ textAlign: 'center', marginTop: 20, fontSize: 13, color: 'var(--text-muted)' }}>
           Don't have an account? <Link to="/register" style={{ color: 'var(--primary-light)', fontWeight: 500 }}>Sign up</Link>
         </p>
+
+        {/* API Settings Section */}
+        <div style={{ marginTop: 24, padding: 12, borderTop: '1px solid var(--border)', textAlign: 'center' }}>
+          <button 
+            type="button"
+            onClick={() => setShowApiSettings(!showApiSettings)}
+            style={{ background: 'none', border: 'none', color: 'var(--text-muted)', fontSize: 11, cursor: 'pointer', textDecoration: 'underline' }}
+          >
+            {showApiSettings ? 'Hide API Config' : 'Connection Issues? Set API URL'}
+          </button>
+          
+          {showApiSettings && (
+            <div style={{ marginTop: 12, textAlign: 'left' }}>
+              <p style={{ fontSize: 10, color: 'var(--text-muted)', marginBottom: 8 }}>
+                Enter your Backend Tunnel URL (including /api):
+              </p>
+              <input 
+                type="text" 
+                className="input" 
+                style={{ fontSize: 12, height: 32, marginBottom: 8 }}
+                placeholder="https://your-api.pinggy.link/api"
+                value={apiUrl}
+                onChange={e => setApiUrl(e.target.value)}
+              />
+              <button 
+                type="button"
+                onClick={saveApiUrl}
+                className="btn btn-primary" 
+                style={{ width: '100%', height: 32, fontSize: 12, padding: 0 }}
+              >
+                Save & Update
+              </button>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
