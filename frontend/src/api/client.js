@@ -10,7 +10,7 @@ const getBaseURL = () => {
   
   // If running locally on port 5173, fallback to port 3001
   if (window.location.port === '5173') {
-    return `http://${window.location.hostname}:3001/api`;
+    return `${window.location.protocol}//${window.location.hostname}:3001/api`;
   }
   
   // Default to relative path
